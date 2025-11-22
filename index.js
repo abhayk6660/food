@@ -1,16 +1,17 @@
 const mineflayer = require("mineflayer");
 
 const CONFIG = {
-  host: "mc.leftypvp.net",
+  host: "SERVER_IP",
   port: 25565,
-  username: "abhay6660",
+  username: "BOT_USERNAME",
   version: "1.21.1",
-  loginPassword: "86259233",
+  loginPassword: "YOUR_PASSWORD",
   warpCommand: "/is warp food"
 };
 
 let bot;
 let isEating = false;
+let waitingForEffect = false;
 
 function startBot() {
   bot = mineflayer.createBot({
@@ -20,14 +21,14 @@ function startBot() {
     version: CONFIG.version
   });
 
-  // ------------ SHOW ALL SERVER CHAT ------------
+  // ---------------- SHOW ALL SERVER CHAT ----------------
   bot.on("message", msg => {
     console.log("[CHAT] " + msg.toString());
   });
 
-  // ------------ SPAWN → LOGIN → WARP → EAT ------------
+  // ---------------- SPAWN → LOGIN → WARP → EAT ----------------
   bot.once("spawn", () => {
-    console.log("Bot spawned, waiting for world load...");
+    console.log("Bot spawned, waiting...");
 
     setTimeout(() => {
       bot.chat(`/login ${CONFIG.loginPassword}`);
@@ -40,7 +41,7 @@ function startBot() {
     }, 4500);
 
     setTimeout(() => {
-      console.log("Auto eating enchanted golden apples started!");
+      console.log("Starting auto-eating...");
       setInterval(autoEatGapple, 1500);
     }, 7000);
   });
@@ -50,34 +51,52 @@ function startBot() {
     console.log("Bot disconnected. Reconnecting...");
     setTimeout(startBot, 3000);
   });
+
+  // ---------------- CONFIRM REAL EATING (POTION EFFECT RECEIVED) ----------------
+  bot.on("entityEffect", (entity, effect) => {
+    // When bot eats enchanted golden apple → Absorption + Regeneration triggered
+    if (entity === bot.entity && waitingForEffect) {
+      console.log("✔ Eating confirmed (effect applied).");
+      waitingForEffect = false;
+      isEating = false;
+    }
+  });
 }
 
 startBot();
 
-
-// ------------ CONSTANT ENCHANTED GOLDEN APPLE EATING ------------
+// ------------------------------------------------------------
+// REAL ANTI-BUG NON-STOP ENCHANTED GOLDEN APPLE EATING
+// ------------------------------------------------------------
 async function autoEatGapple() {
   try {
-    if (isEating) return;
+    if (isEating || waitingForEffect) return;
 
-    const gapple = bot.inventory.items().find(item =>
-      item.name === "enchanted_golden_apple"
-    );
-
+    const gapple = bot.inventory.items().find(i => i.name === "enchanted_golden_apple");
     if (!gapple) {
       console.log("No enchanted golden apples!");
       return;
     }
 
+    console.log("Attempting to eat enchanted golden apple...");
     isEating = true;
-    console.log("Eating enchanted golden apple...");
+    waitingForEffect = true;
 
     await bot.equip(gapple, "hand");
     await bot.consume();
 
-    isEating = false;
+    // RESET IF SERVER LAGS AND EFFECT DOESN'T ARRIVE
+    setTimeout(() => {
+      if (waitingForEffect) {
+        console.log("⚠ Eating failed (lag or cancelled). Resetting...");
+        waitingForEffect = false;
+        isEating = false;
+      }
+    }, 4000);
+
   } catch (err) {
-    console.log("Gapple eat error:", err.message);
+    console.log("Eat error:", err.message);
     isEating = false;
+    waitingForEffect = false;
   }
 }
