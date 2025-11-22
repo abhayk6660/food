@@ -3,7 +3,7 @@ const mineflayer = require("mineflayer");
 const CONFIG = {
   host: "mc.leftypvp.net",
   port: 25565,
-  username: "antkind",
+  username: "abhay6660",
   version: "1.21.1",
   loginPassword: "86259233",
   warpCommand: "/is warp food"
