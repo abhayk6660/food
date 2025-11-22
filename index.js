@@ -10,6 +10,7 @@ const CONFIG = {
 };
 
 let bot;
+let isEating = false;
 
 function startBot() {
   bot = mineflayer.createBot({
@@ -19,23 +20,29 @@ function startBot() {
     version: CONFIG.version
   });
 
+  // ------------ SHOW ALL SERVER CHAT ------------
+  bot.on("message", msg => {
+    console.log("[CHAT] " + msg.toString());
+  });
+
+  // ------------ SPAWN → LOGIN → WARP → EAT ------------
   bot.once("spawn", () => {
-    console.log("Bot spawned!");
+    console.log("Bot spawned, waiting for world load...");
 
     setTimeout(() => {
       bot.chat(`/login ${CONFIG.loginPassword}`);
       console.log("Logging in...");
-    }, 1500);
+    }, 2000);
 
     setTimeout(() => {
       bot.chat(CONFIG.warpCommand);
       console.log("Warping...");
-    }, 3500);
+    }, 4500);
 
     setTimeout(() => {
-      console.log("Auto-eating enchanted golden apples started!");
-      setInterval(autoEatGapple, 1200);
-    }, 6000);
+      console.log("Auto eating enchanted golden apples started!");
+      setInterval(autoEatGapple, 1500);
+    }, 7000);
   });
 
   bot.on("error", err => console.log("Error:", err));
@@ -47,8 +54,12 @@ function startBot() {
 
 startBot();
 
+
+// ------------ CONSTANT ENCHANTED GOLDEN APPLE EATING ------------
 async function autoEatGapple() {
   try {
+    if (isEating) return;
+
     const gapple = bot.inventory.items().find(item =>
       item.name === "enchanted_golden_apple"
     );
@@ -58,11 +69,15 @@ async function autoEatGapple() {
       return;
     }
 
+    isEating = true;
     console.log("Eating enchanted golden apple...");
+
     await bot.equip(gapple, "hand");
     await bot.consume();
 
+    isEating = false;
   } catch (err) {
     console.log("Gapple eat error:", err.message);
+    isEating = false;
   }
 }
